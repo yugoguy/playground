@@ -68,10 +68,14 @@ httos://github.com/CodeReclaimers/neat-oython Minki Oka/Riftg's recent book
 (Japanese) published by O'Reilly Japan Python-011U (Y,A--7:11.11-:std:A4LrItJ7)1,19 XL3,
 (I think it uses neat-python) https-//www co.jp/hooks/9784814400003/ Mig1 NEAT -
 PythononL (OJNI4Mgib httos://oreilIv-janan.githubio/OpenEndedCodebook/ann1/
+
 [2] Backprop NEAT Blog post https.//hIng.otorn net/2016/05/07/hankprnp-neat/ Github
 (for generating Two Circle, XOR, and Spiral datasets)
 httos://github.com/hardmaru/backproo-neat-is/
+
 [3] Weight Agnostic Neural Network (see open-source code repo for NEAT examples) https-
 //weightagnnstin githith in/
+
 [4] Neural Slime Volleyball Gym Environment https-//githiihcom/hardmandslimpvolleygym
+
 [5] EvoJAX's port of Neural Slime Volleyball environment httos://github.com/google/evoiax
