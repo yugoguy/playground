@@ -9,10 +9,15 @@ class SlimeVolleyTask:
       • exposes reset(step_rng_batch) / step(actions) like a gym VecEnv,
       • keeps observations as float32 (0-1) flat tensors.
     """
-    def __init__(self, pop_size: int, max_steps: int = 1000):
-        self.pop  = pop_size
-        self.env  = SlimeVolley(max_steps=max_steps, test=True)
-        self.key  = jax.random.PRNGKey(0)
+    def __init__(self, pop_size: int, max_steps: int = 1000, *, seed: int = 0, test: bool = True):
+        """Create a batch of ``pop_size`` parallel games.
+
+        ``seed`` controls the random key for resets and ``test`` is forwarded to
+        :class:`SlimeVolley`.
+        """
+        self.pop = pop_size
+        self.env = SlimeVolley(max_steps=max_steps, test=test)
+        self.key = jax.random.PRNGKey(seed)
 
     def reset(self):
         self.key, sub = jax.random.split(self.key)
@@ -35,10 +40,15 @@ class SlimeVolleySelfPlayTask:
     argument specifies the number of parallel matches running on the GPU.
     """
 
-    def __init__(self, n_pairs: int, max_steps: int = 1000):
+    def __init__(self, n_pairs: int, max_steps: int = 1000, *, seed: int = 0, test: bool = True):
+        """Create ``n_pairs`` self-play environments.
+
+        ``seed`` initialises the random key and ``test`` is forwarded to
+        :class:`SlimeVolley`.
+        """
         self.n_pairs = n_pairs
-        self.env = SlimeVolley(max_steps=max_steps, test=True, self_play=True)
-        self.key = jax.random.PRNGKey(0)
+        self.env = SlimeVolley(max_steps=max_steps, test=test, self_play=True)
+        self.key = jax.random.PRNGKey(seed)
 
     def reset(self):
         self.key, sub = jax.random.split(self.key)
