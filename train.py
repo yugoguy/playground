@@ -90,7 +90,7 @@ def train_slime(pop_size: int = 20,
             return env_task.rollout_batch([g.forward_jax() for g in genomes])
 
     # -----------------------------------------------------------
-    neat = NEAT(pop_size, template, eval_fn, env=env_task)
+    neat = NEAT(pop_size, template, eval_fn)
     neat.evolve(n_generations)
     return neat.best_genome
 
