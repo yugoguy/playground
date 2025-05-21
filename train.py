@@ -44,49 +44,25 @@ def _evaluate_factory(task: SlimeVolleyTask) -> Callable[[List[Genome]], tuple[n
     return evaluate
 
 
-def _selfplay_evaluate_factory(
-    task: SlimeVolleySelfPlayTask,
-    pairing_fn: Callable[[int], List[tuple[int, int]]] | None = None,
-) -> Callable[[List[Genome]], np.ndarray]:
-    """Return an evaluation function for self-play matches."""
+def _eval_selfplay_factory():
+    """
+    Returns eval_fn(genomes) → np.ndarray   (the signature NEAT expects).
+    It compiles each genome once, calls selfplay_eval, and ignores global env.
+    """
+    def eval_fn(genomes):
+        # 1. compile JAX forward fns
+        params = [g.forward_jax() for g in genomes]
+        policy = lambda p, obs, pst=None: p(obs)      # simple wrapper
 
-    n_pairs = task.n_pairs
-    if pairing_fn is None:
-        def pairing_fn(n: int) -> List[tuple[int, int]]:
-            return [(2 * i, 2 * i + 1) for i in range(n // 2)]
-
-    def evaluate(genomes: List[Genome]) -> np.ndarray:
-        assert len(genomes) == n_pairs * 2, "population must be even"
-        pairs = pairing_fn(len(genomes))
-        fwd = [g.forward_jax() for g in genomes]
-        state = task.reset()
-        fitness = np.zeros(len(genomes), dtype=np.float32)
-        done = jnp.zeros(n_pairs, dtype=bool)
-        while not bool(done.all()):
-            obs1 = state.obs[:, 0]
-            obs2 = state.obs[:, 1]
-            logits_a = jnp.stack([fwd[p[0]](obs1[i]) for i, p in enumerate(pairs)])
-            logits_b = jnp.stack([fwd[p[1]](obs2[i]) for i, p in enumerate(pairs)])
-            state, r, done = task.step(state, logits_a, logits_b)
-            r_np = np.array(r)
-            for i, (p0, p1) in enumerate(pairs):
-                fitness[p0] += r_np[i, 0]
-                fitness[p1] += r_np[i, 1]
-        return fitness
-
-    return evaluate
+        # 2. fresh RNG each generation
+        rng = jax.random.PRNGKey(np.random.randint(2**31))
+        return np.asarray(selfplay_eval(params, policy, rng))
+    return eval_fn
 
 def train_slime(pop_size=20, n_generations=100, self_play=False, **kw):
     if self_play:
-        # policy wrapper: obs -> action using compiled genome net
-        policy = lambda p, o, s=None: p(o)
-
-        def eval_fn(genomes):
-            params = [g.forward_jax() for g in genomes]
-            rng    = jax.random.PRNGKey(np.random.randint(2**31))
-            return np.asarray(evaluate_selfplay(params, policy, rng))
-
-        env_task = None                # not needed in self-play
+        eval_fn  = _eval_selfplay_factory()
+        env_task = None 
     else:
         # … your original single-bot branch (leave untouched) …
         env_task = SlimeVolleyTask(pop_size, 1000)
