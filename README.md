@@ -30,7 +30,8 @@ best = train_slime(
     pop_size=20,
     n_generations=10,
     max_steps=1000,
-    neat_kwargs={"mutate_weight_prob": 0.9}
+neat_kwargs={"mutate_weight_prob": 0.9},
+selfplay=True,
 )
 
 # Roll the trained genome and save a gif
@@ -39,7 +40,16 @@ save_gif(frames, 'slime.gif')
 ```
 
 The optional ``neat_kwargs`` argument allows you to tweak NEAT
-hyper-parameters such as mutation rates.
+hyper-parameters such as mutation rates.  Setting ``selfplay=True`` enables
+training agents against each other instead of the built-in opponent.
+
+### Self-play training algorithm
+
+When self-play is enabled the population is divided into pairs and every pair
+plays a match in parallel.  Fitness is simply the cumulative reward from each
+game.  The pairing strategy is controlled by ``pairing_fn`` so more elaborate
+schedules (e.g. round‑robin) can be plugged in later.  This setup provides a
+denser learning signal compared with the default fixed opponent.
 
 This will produce a file `slime.gif` which can be displayed directly in Colab
 or downloaded.
