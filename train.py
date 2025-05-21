@@ -9,6 +9,7 @@ from functools import partial
 from genome import Genome, InnovationTable
 from neat import NEAT
 from slimevolly import SlimeVolleyTask
+from evojax.task.slimevolley import SlimeVolley
 
 def _evaluate_factory(task: SlimeVolleyTask) -> Callable[[List[Genome]], tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """Return an evaluation function for the given task.
