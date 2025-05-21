@@ -101,29 +101,25 @@ def train_slime(pop_size: int = 20,
 
 # ─────────────────────────────────────────────────────────────
 def _play_match(policy_fn, params_a, params_b):
-    """1 試合（1000 ステップ）を実行し、左プレイヤの報酬を返す。"""
-    key   = jax.random.PRNGKey(np.random.randint(2**31))[None, :]   # (1,2)
+    key   = jax.random.PRNGKey(np.random.randint(2**31))[None, :]
     env   = SlimeVolley(max_steps=1000, test=False)
-    state = env.reset(key)                                          # obs (1,24)
+    state = env.reset(key)
 
     total = 0.0
-    half  = state.obs.shape[-1] // 2      # 12 特徴 × 2プレイヤ = 24
+    half  = state.obs.shape[-1] // 2            # 12
 
     for _ in range(env.max_steps):
-        obs_vec = state.obs[0]            # (24,)
-        obs_a, obs_b = obs_vec[:half], obs_vec[half:]
+        obs_vec = state.obs[0]                  # (24,)
+        obs_a   = obs_vec[:half]                # right player's 12 features
 
-        act_a = policy_fn(params_a, obs_a)     # (3,)
-        act_b = policy_fn(params_b, obs_b)
+        act_a = policy_fn(params_a, obs_a)      # (3,)
+        acts  = jnp.expand_dims(act_a, 0)       # (1,3)
 
-        acts  = jnp.stack([act_a, act_b])[None, :]   # (1,2,3)
         state, r, done = env.step(state, acts)
-
-        total += 10.0 * float(r[0]) + 0.01           # shaped reward
+        total += 10.0 * float(r[0]) + 0.01
         if bool(done[0]):
             break
     return total
-
 
 def selfplay_eval(pop_params, policy_fn):
     """
