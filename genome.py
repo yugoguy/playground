@@ -1,4 +1,3 @@
-# genome.py  – self-contained vanilla-NEAT genome
 import dataclasses, random, math, copy
 import numpy as np
 try:
