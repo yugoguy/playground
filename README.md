@@ -1,4 +1,5 @@
 Part 1: Neuroevolution
+
 Train a NEAT network to play Neural Slime Volleyball
 The purpose of this section is to ask you to explore an old neuroevolution algorithm, called
 Neuroevolution of augmenting topologies (NEAT), which can be used to evolve neural
