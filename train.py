@@ -50,12 +50,13 @@ def _eval_selfplay_factory():
     It compiles each genome once, calls selfplay_eval, and ignores global env.
     """
     def eval_fn(genomes):
-        # 1. compile JAX forward fns
-        params = [g.forward_jax() for g in genomes]
-        policy = lambda p, obs, pst=None: p(obs)      # simple wrapper
-
-        # 2. fresh RNG each generation
-        return np.asarray(selfplay_eval(params, policy))
+        """NEAT が呼び出す評価関数。selfplay_eval を 1 回呼ぶだけ。"""
+        params = [g.forward_jax() for g in genomes]          # list[PyTree]
+    
+        # policy_fn は (params, obs) -> action だけを返すシンプル版
+        policy_fn = lambda net_params, obs: net_params(obs)
+    
+        return np.asarray(selfplay_eval(params, policy_fn))  # shape (pop_size,)
     return eval_fn
 
 def train_slime(pop_size: int = 20,
@@ -79,8 +80,13 @@ def train_slime(pop_size: int = 20,
         # self-play evaluator
         policy = lambda p, obs, pst=None: p(obs)
         def eval_fn(genomes):
-            params = [g.forward_jax() for g in genomes]
-            return np.asarray(selfplay_eval(params, policy))
+            """NEAT が呼び出す評価関数。selfplay_eval を 1 回呼ぶだけ。"""
+            params = [g.forward_jax() for g in genomes]          # list[PyTree]
+        
+            # policy_fn は (params, obs) -> action だけを返すシンプル版
+            policy_fn = lambda net_params, obs: net_params(obs)
+        
+            return np.asarray(selfplay_eval(params, policy_fn))  # shape (pop_size,)
         env_task = None                        # evaluator makes its own env
     else:
         # single-bot path (original behaviour)
@@ -95,37 +101,27 @@ def train_slime(pop_size: int = 20,
 
 # ─────────────────────────────────────────────────────────────
 def _play_match(policy_fn, params_a, params_b):
-    """
-    One SlimeVolley game using BOTH slimes.
-    - state.obs[0] is length 24  -> split into two 12-long vectors
-    - actions stacked to shape (1, 2, 3)
-    - fresh batched PRNG key so env.reset accepts it
-    Returns shaped reward for the left player.
-    """
-    key   = jax.random.PRNGKey(np.random.randint(2**31))
-    key   = key[None, :]                        # (1,2) batch axis
+    """1 試合（1000 ステップ）を実行し、左プレイヤの報酬を返す。"""
+    key   = jax.random.PRNGKey(np.random.randint(2**31))[None, :]   # (1,2)
     env   = SlimeVolley(max_steps=1000, test=False)
-    state = env.reset(key)
+    state = env.reset(key)                                          # obs (1,24)
 
-    pst_a = pst_b = None
     total = 0.0
-    half  = state.obs.shape[-1] // 2            # 12
+    half  = state.obs.shape[-1] // 2      # 12 特徴 × 2プレイヤ = 24
 
     for _ in range(env.max_steps):
-        obs_vec = state.obs[0]                  # (24,)
-        obs_a   = obs_vec[:half]                # first 12
-        obs_b   = obs_vec[half:]                # last 12
+        obs_vec = state.obs[0]            # (24,)
+        obs_a, obs_b = obs_vec[:half], obs_vec[half:]
 
-        act_a, pst_a = policy_fn(params_a, obs_a, pst_a)
-        act_b, pst_b = policy_fn(params_b, obs_b, pst_b)
+        act_a = policy_fn(params_a, obs_a)     # (3,)
+        act_b = policy_fn(params_b, obs_b)
 
-        acts = jnp.stack([act_a, act_b])[None, :]   # (1,2,3)
-
+        acts  = jnp.stack([act_a, act_b])[None, :]   # (1,2,3)
         state, r, done = env.step(state, acts)
-        total += 10.0 * float(r[0]) + 0.01
+
+        total += 10.0 * float(r[0]) + 0.01           # shaped reward
         if bool(done[0]):
             break
-
     return total
 
 
