@@ -104,7 +104,6 @@ def _make_selfplay_eval(policy_fn, pop_size):
 
 # ---- one game between two parameter sets --------------------------
 @partial(jax.jit, static_argnums=(0, 1, 2))
-# ------------------------------------------------------------------
 def _play_match(policy_fn, params_a, params_b):
     """
     Plays one 1 000-step SlimeVolley game.
