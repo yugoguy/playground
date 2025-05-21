@@ -76,28 +76,24 @@ def _selfplay_evaluate_factory(
 
     return evaluate
 
-
-def train_slime(pop_size=20,
-                n_generations=100,
-                self_play=False,
-                eval_fn=None,
-                **kwargs):
-
-    # pick evaluation function -------------------------------------
+def train_slime(pop_size=20, n_generations=100, self_play=False, **kw):
     if self_play:
-        # --- SELF-PLAY -------------------------------------------
-        policy_fn = lambda p, o, s: p(o)          # genome forward wrapper
-        evaluate_fn = _make_selfplay_eval(policy_fn, pop_size)
-        env = None                                # not used
-    else:
-        env = SlimeVolley(max_steps=max_steps, test=True)
-        evaluate_fn = _evaluate_factory(env_task)
+        # policy wrapper: obs -> action using compiled genome net
+        policy = lambda p, o, s=None: p(o)
 
-    neat = NEAT(pop_size=pop_size,
-                template=GenomeTemplate(),
-                eval_fn=eval_fn,
-                env=env)
-    neat.run(n_generations)
+        def eval_fn(genomes):
+            params = [g.forward_jax() for g in genomes]
+            rng    = jax.random.PRNGKey(np.random.randint(2**31))
+            return np.asarray(evaluate_selfplay(params, policy, rng))
+
+        env_task = None                # not needed in self-play
+    else:
+        # … your original single-bot branch (leave untouched) …
+        env_task = SlimeVolleyTask(pop_size, 1000)
+        eval_fn  = _evaluate_factory(env_task)
+
+    neat = NEAT(pop_size, GenomeTemplate(), eval_fn, env=env_task)
+    neat.evolve(n_generations)
     return neat.best_genome
 
 def _make_selfplay_eval(policy_fn, pop_size):
