@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <<<<<<< ours
 # Neuroevolution Playground
 
@@ -169,3 +170,6 @@ frames = rollout_frames(best_genome)
 save_gif(frames, "neat.gif")
 ```
 >>>>>>> theirs
+=======
+
+>>>>>>> f2d1e5d03bc1b77c38a8b6f502e4ed38a0b24400
