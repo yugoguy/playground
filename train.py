@@ -4,6 +4,7 @@ from typing import Callable, List
 import numpy as np
 import jax
 import jax.numpy as jnp
+from functools import partial
 
 from genome import Genome, InnovationTable
 from neat import NEAT
