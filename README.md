@@ -30,13 +30,19 @@ best = train_slime(
     pop_size=20,
     n_generations=10,
     max_steps=1000,
-neat_kwargs={"mutate_weight_prob": 0.9},
-selfplay=True,
+    neat_kwargs={
+        "mutate_weight_prob": 0.9,
+        # add any other NEAT hyper-parameters here
+    },
+    seed=0,
+    test=True,
+    selfplay=True,
+    pairing_fn=None,
 )
 
 # Roll the trained genome and save a gif
 frames = rollout_frames(best, steps=400, frame_skip=5)
-save_gif(frames, 'slime.gif')
+save_gif(frames, "slime.gif")
 ```
 
 The optional ``neat_kwargs`` argument allows you to tweak NEAT
