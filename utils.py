@@ -9,7 +9,6 @@ import imageio
 from genome import Genome
 from slimevolly import SlimeVolleyTask
 from evojax.task.slimevolley import SlimeVolley
-from functools import partial
 
 def logits_to_buttons(logits: Sequence[float]) -> np.ndarray:
     """Convert action logits (length 8) to binary button array (left,right,jump)."""
