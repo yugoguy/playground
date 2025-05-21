@@ -31,8 +31,16 @@ best = train_slime(
     n_generations=10,
     max_steps=1000,
     neat_kwargs={
-        "mutate_weight_prob": 0.9,
-        # add any other NEAT hyper-parameters here
+        # NEAT hyper-parameters
+        "elite_percent": 0.1,
+        "compat_threshold": 3.0,
+        "mutate_weight_prob": 0.8,
+        "mutate_add_conn_prob": 0.05,
+        "mutate_add_node_prob": 0.03,
+        "weight_sigma": 0.2,
+        "perturb_prob": 0.9,
+        "max_conn_tries": 20,
+        "compat_coefs": (1.0, 1.0, 0.4),
     },
     seed=0,
     test=True,
@@ -45,9 +53,10 @@ frames = rollout_frames(best, steps=400, frame_skip=5)
 save_gif(frames, "slime.gif")
 ```
 
-The optional ``neat_kwargs`` argument allows you to tweak NEAT
-hyper-parameters such as mutation rates.  Setting ``selfplay=True`` enables
-training agents against each other instead of the built-in opponent.
+All parameters are listed explicitly in the call above.  The ``neat_kwargs``
+dictionary exposes the underlying NEAT hyper-parameters for fine control.
+Setting ``selfplay=True`` enables training agents against each other instead of
+the built-in opponent.
 
 ### Self-play training algorithm
 
