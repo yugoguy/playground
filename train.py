@@ -96,28 +96,33 @@ def train_slime(pop_size: int = 20,
 # ─────────────────────────────────────────────────────────────
 def _play_match(policy_fn, params_a, params_b):
     """
-    One 1 000-step SlimeVolley game, batched API handled properly.
+    One SlimeVolley game using BOTH slimes.
+    - state.obs[0] is length 24  -> split into two 12-long vectors
+    - actions stacked to shape (1, 2, 3)
+    - fresh batched PRNG key so env.reset accepts it
+    Returns shaped reward for the left player.
     """
     key   = jax.random.PRNGKey(np.random.randint(2**31))
-    key   = key[None, :]                           # (1,2)
+    key   = key[None, :]                        # (1,2) batch axis
     env   = SlimeVolley(max_steps=1000, test=False)
-    state = env.reset(key)                         # state.obs shape (1, 2, obs_dim)
+    state = env.reset(key)
 
     pst_a = pst_b = None
     total = 0.0
+    half  = state.obs.shape[-1] // 2            # 12
+
     for _ in range(env.max_steps):
-        # state.obs[0] → (2, obs_dim).  Index player 0 and 1 explicitly.
-        obs_pair = state.obs[0]
-        obs_a, obs_b = obs_pair[0], obs_pair[1]
+        obs_vec = state.obs[0]                  # (24,)
+        obs_a   = obs_vec[:half]                # first 12
+        obs_b   = obs_vec[half:]                # last 12
 
         act_a, pst_a = policy_fn(params_a, obs_a, pst_a)
         act_b, pst_b = policy_fn(params_b, obs_b, pst_b)
 
-        # (1,2,3) batched action tensor
-        acts = jnp.stack([act_a, act_b])[None, :]
+        acts = jnp.stack([act_a, act_b])[None, :]   # (1,2,3)
 
-        state, r, done = env.step(state, acts)     # r shape (1,)
-        total += 10.0 * float(r[0]) + 0.01         # shaped reward
+        state, r, done = env.step(state, acts)
+        total += 10.0 * float(r[0]) + 0.01
         if bool(done[0]):
             break
 
