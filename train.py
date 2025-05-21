@@ -81,7 +81,7 @@ def train_slime(pop_size: int = 20,
         def eval_fn(genomes):
             params = [g.forward_jax() for g in genomes]
             rng    = jax.random.PRNGKey(np.random.randint(2**31))
-            return np.asarray(selfplay_eval(params, policy, rng))
+            return np.asarray(selfplay_eval(params, policy))
         env_task = None                        # evaluator makes its own env
     else:
         # single-bot path (original behaviour)
@@ -93,14 +93,6 @@ def train_slime(pop_size: int = 20,
     neat = NEAT(pop_size, template, eval_fn)
     neat.evolve(n_generations)
     return neat.best_genome
-
-def _make_selfplay_eval(policy_fn, pop_size):
-    """Returns eval_fn(list[Genome]) → np.ndarray."""
-    def eval_fn(genomes):
-        params   = [g.forward_jax() for g in genomes]
-        rng      = jax.random.PRNGKey(np.random.randint(2**31))
-        return np.asarray(selfplay_eval(params, policy_fn, rng))
-    return eval_fn
 
 # ---- one game between two parameter sets --------------------------
 @partial(jax.jit, static_argnums=(0, 1, 2))
