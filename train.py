@@ -125,10 +125,23 @@ def _play_match(policy_fn, params_a, params_b, rng):
 
 # ---- population-level fitness -------------------------------------
 def selfplay_eval(pop_params, policy_fn, rng):
-    """returns fitness array  len = len(pop_params)"""
-    opp_idx = jax.random.permutation(rng, len(pop_params))
-    keys    = jax.random.split(rng, len(pop_params))
-    vmatch  = jax.vmap(_play_match, in_axes=(None,0,0,0))
-    return vmatch(policy_fn, pop_params, pop_params[opp_idx], keys)
+    """
+    pop_params : list of parameter pytrees (one per genome)
+    policy_fn  : (params, obs, pst) -> action
+    rng        : jax.random.PRNGKey
+    returns    : np.ndarray of fitness values, shape (pop_size,)
+    """
+    pop_size = len(pop_params)
+    perm     = np.random.permutation(pop_size)         # plain NumPy → scalars
+    keys     = jax.random.split(rng, pop_size)
+
+    fitness = []
+    for i in range(pop_size):
+        f = _play_match(policy_fn,
+                        pop_params[i],
+                        pop_params[perm[i]],           # scalar index is OK
+                        keys[i])
+        fitness.append(float(f))
+    return np.asarray(fitness, dtype=np.float32)
 
 __all__ = ["train_slime"]
