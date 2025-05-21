@@ -96,8 +96,9 @@ def train_slime(pop_size: int = 20,
 @partial(jax.jit, static_argnums=(0, 1, 2))
 def _play_match(policy_fn, params_a, params_b, key):
     """
-    Plays one 1 000-step game.
-    key : jax.random.PRNGKey with shape (2,)
+    Plays one 1 000-step SlimeVolley game.
+    `key` must already be a JAX PRNGKey with shape (2,).
+    Returns the shaped reward for the left player.
     """
     env   = SlimeVolley(max_steps=1000, test=False)
     state = env.reset(key)
@@ -110,30 +111,32 @@ def _play_match(policy_fn, params_a, params_b, key):
         act_b, pst_b = policy_fn(params_b, obs_b, pst_b)
 
         state, raw_r, *_ = env.step(state, jnp.stack([act_a, act_b], 1))
-        reward += 10.0 * raw_r[:, 0] + 0.01     # shaped reward
+        reward += 10.0 * raw_r[:, 0] + 0.01          # dense shaped reward
+
     return float(reward)
+
 
 
 # ---- population-level fitness -------------------------------------
 def selfplay_eval(pop_params, policy_fn):
     """
-    Returns np.ndarray of fitness values, len = pop_size.
-    Each genome plays one match vs. a random opponent.
+    pop_params : list of parameter pytrees (one per genome)
+    policy_fn  : (params, obs, pst) -> action
+    returns    : np.ndarray of fitness values, length = pop_size
     """
     pop_size = len(pop_params)
-    perm     = np.random.permutation(pop_size)               # plain ints
+    perm     = np.random.permutation(pop_size)            # plain Python ints
 
     base_key = jax.random.PRNGKey(np.random.randint(2**31))
-    keys     = jax.random.split(base_key, pop_size)
+    keys     = jax.random.split(base_key, pop_size)       # shape (pop_size, 2)
 
-    fitness  = np.empty(pop_size, dtype=np.float32)
+    fitness = np.empty(pop_size, dtype=np.float32)
     for i in range(pop_size):
         fitness[i] = _play_match(policy_fn,
                                  pop_params[i],
                                  pop_params[perm[i]],
-                                 keys[i])
+                                 keys[i])                 # ← pass key in
     return fitness
-
 
 
 __all__ = ["train_slime"]
