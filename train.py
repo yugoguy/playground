@@ -7,7 +7,8 @@ import jax.numpy as jnp
 
 from genome import Genome, InnovationTable
 from neat import NEAT
-from slimevolly import SlimeVolleyTask, SlimeVolleySelfPlayTask
+from slimevolly import SlimeVolleyTask
+from utils import selfplay_eval
 
 
 def _evaluate_factory(task: SlimeVolleyTask) -> Callable[[List[Genome]], tuple[np.ndarray, np.ndarray, np.ndarray]]:
@@ -76,52 +77,28 @@ def _selfplay_evaluate_factory(
     return evaluate
 
 
-def train_slime(
-    pop_size: int = 20,
-    n_generations: int = 10,
-    max_steps: int = 1000,
-    neat_kwargs: dict | None = None,
-    *,
-    seed: int = 0,
-    test: bool = True,
-    selfplay: bool = False,
-    pairing_fn: Callable[[int], List[tuple[int, int]]] | None = None,
-) -> Genome:
-    """Train a NEAT population on the SlimeVolley task.
+def train_slime(pop_size=20,
+                n_generations=100,
+                self_play=False,
+                eval_fn=None,
+                **kwargs):
 
-    If ``selfplay`` is ``True`` the population is split into pairs that play
-    against each other each generation. ``pairing_fn`` may be used to control
-    how genomes are matched. ``seed`` and ``test`` are forwarded to the
-    environment constructor. Additional NEAT hyper-parameters can be provided
-    via ``neat_kwargs``.
-
-    Returns the best genome after ``n_generations``.
-    """
-
-    if selfplay:
-        if pop_size % 2 != 0:
-            raise ValueError("pop_size must be even when selfplay is True")
-        task = SlimeVolleySelfPlayTask(pop_size // 2, max_steps=max_steps,
-                                       seed=seed, test=test)
+    # pick evaluation function -------------------------------------
+    if self_play:
+        policy_fn = forward_fn_for_genome
+        eval_fn   = eval_fn or (lambda p, rng:
+                                selfplay_eval(p, policy_fn, rng))
+        env = None
     else:
-        task = SlimeVolleyTask(pop_size=pop_size, max_steps=max_steps,
-                               seed=seed, test=test)
-    obs_dim = task.reset().obs.shape[-1]
-    tbl = InnovationTable()
-    template = Genome(obs_dim, 8, tbl)
+        from slimevolly import SlimeVolley
+        env     = SlimeVolley(max_steps=1000, test=True)
+        eval_fn = eval_fn or default_single_eval
 
-    evaluate_fn = (
-        _selfplay_evaluate_factory(task, pairing_fn)
-        if selfplay
-        else _evaluate_factory(task)
-    )
-    if neat_kwargs is None:
-        neat_kwargs = {}
     neat = NEAT(pop_size=pop_size,
-                genome_template=template,
-                evaluate_fn=evaluate_fn,
-                **neat_kwargs)
-    neat.evolve(n_generations)
+                template=GenomeTemplate(),
+                eval_fn=eval_fn,
+                env=env)
+    neat.run(n_generations)
     return neat.best_genome
 
 
