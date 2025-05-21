@@ -56,11 +56,16 @@ class Genome:
         return g
 
     # ------------ mutations ---------------------------------------------
-    def mutate_weights(self, sigma=0.2):
+    def mutate_weights(self, sigma=0.2, perturb_prob: float = 0.9):
+        """Mutate connection weights.
+
+        ``perturb_prob`` controls the chance of perturbing an existing weight
+        versus reinitialising it.
+        """
         for c in self.conns:
-            if random.random() < 0.9:       # perturb
+            if random.random() < perturb_prob:       # perturb
                 c.w += random.gauss(0, sigma)
-            else:                           # re-init
+            else:                                    # re-init
                 c.w  = random.uniform(-1,1)
 
     def mutate_add_conn(self, max_tries=20):
