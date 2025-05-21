@@ -50,33 +50,4 @@ def save_gif(frames, filename: str, fps: int = 20, scale: int = 2) -> None:
         frames = [np.kron(f, np.ones((scale, scale, 1), dtype=f.dtype)) for f in frames]
     imageio.mimsave(filename, frames, duration=int(1000 / fps))
 
-# ---- one game between two parameter sets --------------------------
-@partial(jax.jit, static_argnums=0)
-def _play_match(policy_fn, params_a, params_b, rng):
-    env   = SlimeVolley(max_steps=1000, test=False)      # no built-in bot
-    state = env.reset(rng)
-    pst_a = pst_b = None
-    reward = 0.0
-
-    for _ in range(env.max_steps):
-        obs_a, obs_b = state.obs[:, 0], state.obs[:, 1]  # left/right views
-        act_a, pst_a = policy_fn(params_a, obs_a, pst_a)
-        act_b, pst_b = policy_fn(params_b, obs_b, pst_b)
-        actions      = jnp.stack([act_a, act_b], 1)      # (B,2,3)
-
-        state, raw_r, done, _ = env.step(state, actions)
-
-        # shaped reward: 10 × score diff  + 0.01 per frame alive
-        reward += 10.0 * raw_r[:, 0] + 0.01
-
-    return reward                                        # scalar per batch
-
-# ---- population-level fitness -------------------------------------
-def selfplay_eval(pop_params, policy_fn, rng):
-    """returns fitness array  len = len(pop_params)"""
-    opp_idx = jax.random.permutation(rng, len(pop_params))
-    keys    = jax.random.split(rng, len(pop_params))
-    vmatch  = jax.vmap(_play_match, in_axes=(None,0,0,0))
-    return vmatch(policy_fn, pop_params, pop_params[opp_idx], keys)
-
 __all__ = ["logits_to_buttons", "rollout_frames", "save_gif"]
