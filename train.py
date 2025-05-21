@@ -96,45 +96,46 @@ def train_slime(pop_size: int = 20,
 
 # ---- one game between two parameter sets --------------------------
 @partial(jax.jit, static_argnums=(0, 1, 2))
-def _play_match(policy_fn, params_a, params_b):
+def _play_match(policy_fn, params_a, params_b, key):
     """
-    Plays one 1 000-step SlimeVolley game.
-    Returns shaped reward for the left player.
-    NO jax.jit → avoids static-arg issues, plenty fast for small pops.
+    Plays one 1 000-step game.
+    key : jax.random.PRNGKey with shape (2,)
     """
     env   = SlimeVolley(max_steps=1000, test=False)
-    key   = jax.random.PRNGKey(np.random.randint(2**31))
     state = env.reset(key)
 
     pst_a = pst_b = None
     reward = 0.0
-
     for _ in range(env.max_steps):
         obs_a, obs_b = state.obs[:, 0], state.obs[:, 1]
         act_a, pst_a = policy_fn(params_a, obs_a, pst_a)
         act_b, pst_b = policy_fn(params_b, obs_b, pst_b)
 
         state, raw_r, *_ = env.step(state, jnp.stack([act_a, act_b], 1))
-        reward += 10.0 * raw_r[:, 0] + 0.01          # shaped reward
-
+        reward += 10.0 * raw_r[:, 0] + 0.01     # shaped reward
     return float(reward)
 
 
 # ---- population-level fitness -------------------------------------
 def selfplay_eval(pop_params, policy_fn):
     """
-    Returns np.ndarray of fitness values (len = pop_size).
-    Each genome plays one game vs. a random opponent.
+    Returns np.ndarray of fitness values, len = pop_size.
+    Each genome plays one match vs. a random opponent.
     """
     pop_size = len(pop_params)
-    perm     = np.random.permutation(pop_size)        # Python ints → safe
-    fitness  = np.empty(pop_size, dtype=np.float32)
+    perm     = np.random.permutation(pop_size)               # plain ints
 
+    base_key = jax.random.PRNGKey(np.random.randint(2**31))
+    keys     = jax.random.split(base_key, pop_size)
+
+    fitness  = np.empty(pop_size, dtype=np.float32)
     for i in range(pop_size):
         fitness[i] = _play_match(policy_fn,
                                  pop_params[i],
-                                 pop_params[perm[i]])
+                                 pop_params[perm[i]],
+                                 keys[i])
     return fitness
+
 
 
 __all__ = ["train_slime"]
