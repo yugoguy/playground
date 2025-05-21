@@ -20,6 +20,8 @@ class NEAT:
                  mutate_add_conn_prob: float = 0.05,
                  mutate_add_node_prob: float = 0.03,
                  weight_sigma: float = 0.2,
+                 perturb_prob: float = 0.9,
+                 max_conn_tries: int = 20,
                  compat_coefs: tuple = (1.0, 1.0, 0.4)):
         """Create a NEAT engine with adjustable hyper-parameters."""
 
@@ -32,6 +34,8 @@ class NEAT:
         self.mutate_add_conn_prob = mutate_add_conn_prob
         self.mutate_add_node_prob = mutate_add_node_prob
         self.weight_sigma        = weight_sigma
+        self.perturb_prob        = perturb_prob
+        self.max_conn_tries      = max_conn_tries
         self.compat_coefs        = compat_coefs
         # Clone template to make initial homogeneous population
         self.population = [genome_template.clone() for _ in range(pop_size)]
@@ -138,8 +142,9 @@ class NEAT:
 
     def mutate(self, g: 'Genome'):
         if random.random() < self.mutate_weight_prob:
-            g.mutate_weights(sigma=self.weight_sigma)
+            g.mutate_weights(sigma=self.weight_sigma,
+                            perturb_prob=self.perturb_prob)
         if random.random() < self.mutate_add_conn_prob:
-            g.mutate_add_conn()
+            g.mutate_add_conn(max_tries=self.max_conn_tries)
         if random.random() < self.mutate_add_node_prob:
             g.mutate_add_node()
