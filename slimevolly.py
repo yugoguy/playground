@@ -31,33 +31,3 @@ class SlimeVolleyTask:
         """
         next_state, reward, done = self.env.step(state, actions)
         return next_state, reward, done
-
-
-class SlimeVolleySelfPlayTask:
-    """A variant of :class:`SlimeVolleyTask` that supports self-play.
-
-    Each environment instance hosts a match between two agents. The ``pop``
-    argument specifies the number of parallel matches running on the GPU.
-    """
-
-    def __init__(self, n_pairs: int, max_steps: int = 1000, *, seed: int = 0, test: bool = True):
-        """Create ``n_pairs`` self-play environments.
-
-        ``seed`` initialises the random key and ``test`` is forwarded to
-        :class:`SlimeVolley`.
-        """
-        self.n_pairs = n_pairs
-        self.env = SlimeVolley(max_steps=max_steps, test=test, self_play=True)
-        self.key = jax.random.PRNGKey(seed)
-
-    def reset(self):
-        self.key, sub = jax.random.split(self.key)
-        keys = jax.random.split(sub, self.n_pairs * 2)
-        keys = keys.reshape(self.n_pairs, 2, -1)
-        return self.env.reset(keys)
-
-    def step(self, state, actions_a, actions_b):
-        """Step the environment with actions for both players."""
-        actions = jnp.stack([actions_a, actions_b], axis=1)
-        next_state, reward, done = self.env.step(state, actions)
-        return next_state, reward, done
