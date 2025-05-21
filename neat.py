@@ -44,11 +44,25 @@ class NEAT:
     def evolve(self, n_generations: int):
         for gen in range(n_generations):
             # 1. evaluate ------------------------------------------------
-            fitness = self.evaluate_fn(self.population)
-            best_i  = int(np.argmax(fitness))
+            result = self.evaluate_fn(self.population)
+            if isinstance(result, tuple):
+                fitness, scored, conceded = result
+            else:
+                fitness = result
+                scored = conceded = None
+            best_i = int(np.argmax(fitness))
             self.best_genome = self.population[best_i].clone()
-            print(f'Gen {gen:02d}  best={fitness[best_i]:.1f}  '
-                  f'species={len(self.species)}')
+            log = (
+                f"Gen {gen:02d}  best={fitness[best_i]:.1f}  "
+                f"species={len(self.species)}"
+            )
+            if scored is not None:
+                log += (
+                    f"  scored={int(scored[best_i])}"
+                    f"  conceded={int(conceded[best_i])}"
+                    f"  high_scorer={int(np.argmax(scored))}"
+                )
+            print(log)
 
             # 2. speciate -----------------------------------------------
             self._update_species()
