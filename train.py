@@ -67,7 +67,7 @@ def train_slime(pop_size=20, n_generations=100, self_play=False, **kw):
         env_task = SlimeVolleyTask(pop_size, 1000)
         eval_fn  = _evaluate_factory(env_task)
 
-    neat = NEAT(pop_size, GenomeTemplate(), eval_fn, env=env_task)
+    neat = NEAT(pop_size, Genome(), eval_fn, env=env_task)
     neat.evolve(n_generations)
     return neat.best_genome
 
