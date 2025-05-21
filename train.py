@@ -92,44 +92,51 @@ def train_slime(pop_size: int = 20,
     neat.evolve(n_generations)
     return neat.best_genome
 
-# ---- one game between two parameter sets --------------------------
+# ─────────────────────────────────────────────────────────────
 def _play_match(policy_fn, params_a, params_b):
     """
-    Plays a single 1 000-step SlimeVolley game and returns the shaped
-    reward for the left player.  It creates its own PRNG key, so callers
-    don’t have to manage RNG shapes.
+    One 1 000-step SlimeVolley game.
+    – Makes its own PRNG key.
+    – Adds a batch-dimension (shape (1, 2)) before env.reset.
+    – Handles batched state/action correctly.
+    Returns a Python float fitness for the *left* player.
     """
-    key   = jax.random.PRNGKey(np.random.randint(2**31))   # fresh (2,) key
+    key   = jax.random.PRNGKey(np.random.randint(2**31))   # (2,)
+    key   = key[None, :]                                    # (1,2)  ✅ batch axis
     env   = SlimeVolley(max_steps=1000, test=False)
-    state = env.reset(key)
+    state = env.reset(key)                                  # now accepted
 
     pst_a = pst_b = None
-    reward = 0.0
+    total = 0.0
     for _ in range(env.max_steps):
-        obs_a, obs_b = state.obs[:, 0], state.obs[:, 1]
+        obs_a, obs_b = state.obs[0]         # shape (obs_dim,)
         act_a, pst_a = policy_fn(params_a, obs_a, pst_a)
         act_b, pst_b = policy_fn(params_b, obs_b, pst_b)
 
-        state, raw_r, *_ = env.step(state, jnp.stack([act_a, act_b], 1))
-        reward += 10.0 * raw_r[:, 0] + 0.01           # shaped reward
-    return float(reward)
+        acts = jnp.stack([act_a, act_b])    # shape (2,3)
+        acts = acts[None, :]                # (1,2,3) batched
 
-# ── 2. population evaluator ─────────────────────────────────────
+        state, r, done = env.step(state, acts)
+        total += 10.0 * float(r[0, 0]) + 0.01          # shaped reward
+        if bool(done[0]):
+            break
+    return total
+
+
 def selfplay_eval(pop_params, policy_fn):
     """
-    Each genome plays ONE game against a randomly chosen opponent.
-    Returns a NumPy array of fitness with len = pop_size.
+    Each genome plays ONE match vs. a random opponent.
+    Returns np.ndarray of float32 fitness values.
     """
     pop_size = len(pop_params)
-    perm     = np.random.permutation(pop_size)          # plain Python ints
-
+    perm     = np.random.permutation(pop_size)           # Python ints
     fitness  = np.empty(pop_size, dtype=np.float32)
+
     for i in range(pop_size):
         fitness[i] = _play_match(policy_fn,
                                  pop_params[i],
                                  pop_params[perm[i]])
     return fitness
-
 
 
 __all__ = ["train_slime"]
