@@ -70,7 +70,8 @@ def train_slime(pop_size: int = 20,
     # -----------------------------------------------------------
     # 1. get input/output sizes for the genome template
     probe_env = SlimeVolley(max_steps=max_steps, test=False)       # one-shot
-    n_in, n_out = probe_env.obs_shape[0], probe_env.act_shape[0]
+    n_in  = probe_env.obs_shape[-1]  
+    n_out = probe_env.act_shape[-1]   
     template = Genome(n_in, n_out, InnovationTable())
 
     # -----------------------------------------------------------
