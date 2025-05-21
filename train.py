@@ -55,7 +55,6 @@ def _eval_selfplay_factory():
         policy = lambda p, obs, pst=None: p(obs)      # simple wrapper
 
         # 2. fresh RNG each generation
-        rng = jax.random.PRNGKey(np.random.randint(2**31))
         return np.asarray(selfplay_eval(params, policy))
     return eval_fn
 
@@ -80,7 +79,6 @@ def train_slime(pop_size: int = 20,
         policy = lambda p, obs, pst=None: p(obs)
         def eval_fn(genomes):
             params = [g.forward_jax() for g in genomes]
-            rng    = jax.random.PRNGKey(np.random.randint(2**31))
             return np.asarray(selfplay_eval(params, policy))
         env_task = None                        # evaluator makes its own env
     else:
