@@ -26,12 +26,20 @@ from train import train_slime
 from utils import rollout_frames, save_gif
 
 # Train for a few generations (increase for better performance)
-best = train_slime(pop_size=20, n_generations=10, max_steps=1000)
+best = train_slime(
+    pop_size=20,
+    n_generations=10,
+    max_steps=1000,
+    neat_kwargs={"mutate_weight_prob": 0.9}
+)
 
 # Roll the trained genome and save a gif
 frames = rollout_frames(best, steps=400, frame_skip=5)
 save_gif(frames, 'slime.gif')
 ```
+
+The optional ``neat_kwargs`` argument allows you to tweak NEAT
+hyper-parameters such as mutation rates.
 
 This will produce a file `slime.gif` which can be displayed directly in Colab
 or downloaded.

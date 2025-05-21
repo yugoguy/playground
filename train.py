@@ -38,8 +38,11 @@ def train_slime(
     pop_size: int = 20,
     n_generations: int = 10,
     max_steps: int = 1000,
+    neat_kwargs: dict | None = None,
 ) -> Genome:
     """Train a NEAT population on the SlimeVolley task.
+
+    Additional NEAT hyper-parameters can be provided via ``neat_kwargs``.
 
     Returns the best genome after ``n_generations``.
     """
@@ -50,7 +53,12 @@ def train_slime(
     template = Genome(obs_dim, 8, tbl)
 
     evaluate_fn = _evaluate_factory(task)
-    neat = NEAT(pop_size=pop_size, genome_template=template, evaluate_fn=evaluate_fn)
+    if neat_kwargs is None:
+        neat_kwargs = {}
+    neat = NEAT(pop_size=pop_size,
+                genome_template=template,
+                evaluate_fn=evaluate_fn,
+                **neat_kwargs)
     neat.evolve(n_generations)
     return neat.best_genome
 
