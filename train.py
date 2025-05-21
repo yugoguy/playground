@@ -103,7 +103,7 @@ def _make_selfplay_eval(policy_fn, pop_size):
     return eval_fn
 
 # ---- one game between two parameter sets --------------------------
-@partial(jax.jit, static_argnums=0)
+@partial(jax.jit, static_argnums=(0, 1, 2))
 def _play_match(policy_fn, params_a, params_b, rng):
     env   = SlimeVolley(max_steps=1000, test=False)      # no built-in bot
     state = env.reset(rng)
