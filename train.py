@@ -85,14 +85,13 @@ def train_slime(pop_size=20,
 
     # pick evaluation function -------------------------------------
     if self_play:
-        policy_fn = forward_fn_for_genome
-        eval_fn   = eval_fn or (lambda p, rng:
-                                selfplay_eval(p, policy_fn, rng))
-        env = None
+        # --- SELF-PLAY -------------------------------------------
+        policy_fn = lambda p, o, s: p(o)          # genome forward wrapper
+        evaluate_fn = _make_selfplay_eval(policy_fn, pop_size)
+        env = None                                # not used
     else:
-        from slimevolly import SlimeVolley
-        env     = SlimeVolley(max_steps=1000, test=True)
-        eval_fn = eval_fn or default_single_eval
+        env = SlimeVolley(max_steps=max_steps, test=True)
+        evaluate_fn = _evaluate_factory(env_task)
 
     neat = NEAT(pop_size=pop_size,
                 template=GenomeTemplate(),
@@ -100,6 +99,14 @@ def train_slime(pop_size=20,
                 env=env)
     neat.run(n_generations)
     return neat.best_genome
+
+def _make_selfplay_eval(policy_fn, pop_size):
+    """Returns eval_fn(list[Genome]) → np.ndarray."""
+    def eval_fn(genomes):
+        params   = [g.forward_jax() for g in genomes]
+        rng      = jax.random.PRNGKey(np.random.randint(2**31))
+        return np.asarray(selfplay_eval(params, policy_fn, rng))
+    return eval_fn
 
 
 __all__ = ["train_slime"]
