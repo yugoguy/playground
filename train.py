@@ -56,7 +56,7 @@ def _eval_selfplay_factory():
 
         # 2. fresh RNG each generation
         rng = jax.random.PRNGKey(np.random.randint(2**31))
-        return np.asarray(selfplay_eval(params, policy, rng))
+        return np.asarray(selfplay_eval(params, policy))
     return eval_fn
 
 def train_slime(pop_size: int = 20,
