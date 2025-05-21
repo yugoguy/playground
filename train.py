@@ -58,16 +58,38 @@ def _eval_selfplay_factory():
         return np.asarray(selfplay_eval(params, policy, rng))
     return eval_fn
 
-def train_slime(pop_size=20, n_generations=100, self_play=False, **kw):
-    if self_play:
-        eval_fn  = _eval_selfplay_factory()
-        env_task = None 
-    else:
-        # … your original single-bot branch (leave untouched) …
-        env_task = SlimeVolleyTask(pop_size, 1000)
-        eval_fn  = _evaluate_factory(env_task)
+def train_slime(pop_size: int = 20,
+                n_generations: int = 10,
+                max_steps: int = 1000,
+                self_play: bool = False,
+                **kw):
+    """
+    If self_play=True the population learns by playing one another.
+    Otherwise it plays the built-in reference AI.
+    """
+    # -----------------------------------------------------------
+    # 1. get input/output sizes for the genome template
+    probe_env = SlimeVolley(max_steps=max_steps, test=False)       # one-shot
+    n_in, n_out = probe_env.obs_shape[0], probe_env.act_shape[0]
+    template = Genome(n_in, n_out, InnovationTable())
 
-    neat = NEAT(pop_size, Genome(), eval_fn, env=env_task)
+    # -----------------------------------------------------------
+    if self_play:
+        # self-play evaluator
+        policy = lambda p, obs, pst=None: p(obs)
+        def eval_fn(genomes):
+            params = [g.forward_jax() for g in genomes]
+            rng    = jax.random.PRNGKey(np.random.randint(2**31))
+            return np.asarray(selfplay_eval(params, policy, rng))
+        env_task = None                        # evaluator makes its own env
+    else:
+        # single-bot path (original behaviour)
+        env_task = SlimeVolley(max_steps=max_steps, test=True)
+        def eval_fn(genomes):
+            return env_task.rollout_batch([g.forward_jax() for g in genomes])
+
+    # -----------------------------------------------------------
+    neat = NEAT(pop_size, template, eval_fn, env=env_task)
     neat.evolve(n_generations)
     return neat.best_genome
 
