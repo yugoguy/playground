@@ -18,6 +18,7 @@ best_genome = train_slime(pop_size=10, n_generations=3)
 ## Visualisation
 
 The utilities in `utils.py` can roll out a genome in the environment and
+<<<<<<< ours
 produce a GIF.
 
 ```python
@@ -43,9 +44,27 @@ best = train_slime(pop_size=10, n_generations=3)
 
 # create a GIF of the trained agent
 frames = rollout_frames(best)
+=======
+produce a GIF.  Below is a full snippet you can run in Google Colab to train
+an agent and visualise the result:
+
+```python
+from pyvirtualdisplay import Display
+from IPython.display import display, Image
+from utils import rollout_frames, save_gif
+
+# start a virtual display (needed in Colab)
+Display(visible=0, size=(1400, 900)).start()
+
+best_genome = train_slime(pop_size=10, n_generations=3)
+frames = rollout_frames(best_genome)
+>>>>>>> theirs
 save_gif(frames, "neat_best.gif")
 display(Image("neat_best.gif"))
 ```
 
+<<<<<<< ours
 >>>>>>> theirs
 ---
+=======
+>>>>>>> theirs
