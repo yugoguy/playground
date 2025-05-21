@@ -82,14 +82,17 @@ def train_slime(
     max_steps: int = 1000,
     neat_kwargs: dict | None = None,
     *,
+    seed: int = 0,
+    test: bool = True,
     selfplay: bool = False,
     pairing_fn: Callable[[int], List[tuple[int, int]]] | None = None,
 ) -> Genome:
     """Train a NEAT population on the SlimeVolley task.
 
     If ``selfplay`` is ``True`` the population is split into pairs that play
-    against each other each generation.  ``pairing_fn`` may be used to control
-    how genomes are matched.  Additional NEAT hyper-parameters can be provided
+    against each other each generation. ``pairing_fn`` may be used to control
+    how genomes are matched. ``seed`` and ``test`` are forwarded to the
+    environment constructor. Additional NEAT hyper-parameters can be provided
     via ``neat_kwargs``.
 
     Returns the best genome after ``n_generations``.
@@ -98,9 +101,11 @@ def train_slime(
     if selfplay:
         if pop_size % 2 != 0:
             raise ValueError("pop_size must be even when selfplay is True")
-        task = SlimeVolleySelfPlayTask(pop_size // 2, max_steps=max_steps)
+        task = SlimeVolleySelfPlayTask(pop_size // 2, max_steps=max_steps,
+                                       seed=seed, test=test)
     else:
-        task = SlimeVolleyTask(pop_size=pop_size, max_steps=max_steps)
+        task = SlimeVolleyTask(pop_size=pop_size, max_steps=max_steps,
+                               seed=seed, test=test)
     obs_dim = task.reset().obs.shape[-1]
     tbl = InnovationTable()
     template = Genome(obs_dim, 8, tbl)
