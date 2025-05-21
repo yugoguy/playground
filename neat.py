@@ -15,12 +15,24 @@ class NEAT:
                  genome_template: 'Genome',
                  evaluate_fn: Callable[[List['Genome']], np.ndarray],
                  elite_percent: float = 0.1,
-                 compat_threshold: float = 3.0):
+                 compat_threshold: float = 3.0,
+                 mutate_weight_prob: float = 0.8,
+                 mutate_add_conn_prob: float = 0.05,
+                 mutate_add_node_prob: float = 0.03,
+                 weight_sigma: float = 0.2,
+                 compat_coefs: tuple = (1.0, 1.0, 0.4)):
+        """Create a NEAT engine with adjustable hyper-parameters."""
+
         self.tbl           = genome_template.tbl               # shared
         self.pop_size      = pop_size
         self.evaluate_fn   = evaluate_fn
         self.elite_percent = elite_percent
         self.compat_thresh = compat_threshold
+        self.mutate_weight_prob   = mutate_weight_prob
+        self.mutate_add_conn_prob = mutate_add_conn_prob
+        self.mutate_add_node_prob = mutate_add_node_prob
+        self.weight_sigma        = weight_sigma
+        self.compat_coefs        = compat_coefs
         # Clone template to make initial homogeneous population
         self.population = [genome_template.clone() for _ in range(pop_size)]
         self.species    = defaultdict(list)   # species_id -> indices
@@ -47,14 +59,14 @@ class NEAT:
     # -----------------------------------------------------------------
     # --- speciation helpers
     # -----------------------------------------------------------------
-    def compat_distance(self, g1: 'Genome', g2: 'Genome',
-                        c1=1.0, c2=1.0, c3=0.4):
+    def compat_distance(self, g1: 'Genome', g2: 'Genome'):
         """Very rough compat for minimal demo (counts disjoint / excess)."""
+        c1, c2, c3 = self.compat_coefs
         g1_ids = {c.innov for c in g1.conns}
         g2_ids = {c.innov for c in g2.conns}
         ex_dis = len(g1_ids.symmetric_difference(g2_ids))
-        w_diff = np.mean([abs(c1.w - c2.w) for c1, c2
-                          in zip(g1.conns, g2.conns) if c1.innov==c2.innov]) \
+        w_diff = np.mean([abs(cc1.w - cc2.w) for cc1, cc2
+                          in zip(g1.conns, g2.conns) if cc1.innov==cc2.innov]) \
                  if g1.conns and g2.conns else 0
         N = max(len(g1.conns), len(g2.conns), 1)
         return (c1*ex_dis)/N + c3*w_diff
@@ -111,6 +123,9 @@ class NEAT:
         return child
 
     def mutate(self, g: 'Genome'):
-        if random.random()<0.8: g.mutate_weights()
-        if random.random()<0.05:g.mutate_add_conn()
-        if random.random()<0.03:g.mutate_add_node()
+        if random.random() < self.mutate_weight_prob:
+            g.mutate_weights(sigma=self.weight_sigma)
+        if random.random() < self.mutate_add_conn_prob:
+            g.mutate_add_conn()
+        if random.random() < self.mutate_add_node_prob:
+            g.mutate_add_node()
